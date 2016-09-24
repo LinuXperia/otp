@@ -187,6 +187,16 @@ peep([B = #alu{aluop=Op,src=#x86_imm{value=Val},dst=Dst}|Insns], Res, Lst) ->
 	    peep(Insns, [B|Res], Lst)
     end;
 
+%% LeaToAdd
+%% This rule transforms lea into add when the destination is the same as one of
+%% the operands. Sound because lea is never used where the condition codes are
+%% live (and would be clobbered by add).
+%% ----------
+peep([#lea{mem=#x86_mem{base=Dst,off=Src}, temp=Dst}|Insns], Res, Lst) ->
+     peep(Insns, [#alu{aluop='add',src=Src,dst=Dst}|Res], [leaToAdd|Lst]);
+peep([#lea{mem=#x86_mem{base=Src,off=Dst}, temp=Dst}|Insns], Res, Lst) ->
+     peep(Insns, [#alu{aluop='add',src=Src,dst=Dst}|Res], [leaToAdd|Lst]);
+
 %% SubToDec
 %% This rule turns "subl $1,Dst; jl Lab" into "decl Dst; jl Lab", which
 %% changes reduction counter tests to use decl instead of subl.
